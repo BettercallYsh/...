@@ -5,7 +5,7 @@ from aiohttp import web
 from plugins import web_server
 import sys
 from datetime import datetime
-from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, FORCE_SUB_CHANNEL, CHANNEL_ID, PORT, MONGO_URI
+from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, FORCE_SUB_CHANNEL, CHANNEL_ID, PORT, MONGO_URI, DATABASE_NAME
 
 # Import from the new files
 from database import add_admin, remove_admin, set_force_sub, get_force_sub, is_admin, get_all_users, save_broadcast_message
@@ -29,7 +29,7 @@ class Bot(Client):
 
         # Connect to MongoDB
         self.client = MongoClient(MONGO_URI)
-        self.db = self.client["telegram_bot"]
+        self.db = self.client[DATABASE_NAME]
         self.users_collection = self.db["users"]
         self.config_collection = self.db["config"]
 
@@ -136,39 +136,3 @@ class Bot(Client):
         if not await is_admin(message.from_user.id):
             await message.reply_text("You don't have permission to use this command.")
             return
-
-        channel_id = self.force_sub_channel
-        if channel_id:
-            await message.reply_text(f"Current force subscription channel ID: {channel_id}")
-        else:
-            await message.reply_text("No force subscription channel is set.")
-
-    async def list_users(self, client, message):
-        if not await is_admin(message.from_user.id):
-            await message.reply_text("You don't have permission to use this command.")
-            return
-
-        users = get_all_users()
-        if users:
-            user_list = "\n".join([str(user["user_id"]) for user in users])
-            await message.reply_text(f"Registered Users:\n{user_list}")
-        else:
-            await message.reply_text("No users found.")
-
-    async def broadcast_message(self, client, message):
-        if not await is_admin(message.from_user.id):
-            await message.reply_text("You don't have permission to use this command.")
-            return
-
-        try:
-            broadcast_text = message.text.split(" ", 1)[1]
-            users = get_all_users()
-            for user in users:
-                try:
-                    await client.send_message(user["user_id"], broadcast_text)
-                except Exception as e:
-                    continue
-            await message.reply_text("Broadcast message sent to all users.")
-        except Exception as e:
-            await message.reply_text
-
